@@ -7,7 +7,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      initialRouteName='Logsession'
+      initialRouteName='(logsession)'
       screenOptions={{
         headerShown: false,
       }}>
@@ -19,7 +19,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="Logsession"
+        name="(logsession)"
         options={{
           title: 'Log Session',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,

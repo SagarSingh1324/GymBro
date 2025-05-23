@@ -1,13 +1,43 @@
-import { useState } from "react";
+import {
+    addWeightEntry,
+    loadWeightHistory,
+    saveWeightHistory
+} from "@/localstorage/storage";
+import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { WeightEntry } from "./types";
 
 export default function WeightLog() {
-    const [weightEntries, setWeightEntries] = useState([
-        { weight: 80, date: new Date().toISOString() }
-    ]);
-
+    const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [inputValue, setInputValue] = useState("");
+    const [loading, setLoading] = useState(true);
+
+    // Load saved weight history on mount
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const savedHistory = await loadWeightHistory();
+                if (savedHistory.length > 0) {
+                    setWeightEntries(savedHistory);
+                } else {
+                    // Initialize with default if no history exists
+                    setWeightEntries([{ 
+                        id: Date.now().toString(),
+                        weight: 80, 
+                        date: new Date().toISOString() 
+                    }]);
+                }
+            } catch (error) {
+                Alert.alert("Error", "Failed to load weight history");
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        loadData();
+    }, []);
 
     const currentWeight = weightEntries[weightEntries.length - 1]?.weight || 0;
     const previousWeight = weightEntries.length > 1 ? weightEntries[weightEntries.length - 2].weight : null;
@@ -18,28 +48,74 @@ export default function WeightLog() {
         setModalVisible(true);
     }
 
-    function handleSaveWeight() {
+    async function handleSaveWeight() {
         if (!inputValue.trim()) {
             Alert.alert("Error", "Please enter a weight value.");
             return;
         }
         
         const numWeight = parseFloat(inputValue);
-        if (!isNaN(numWeight) && numWeight > 0) {
-            setWeightEntries(prev => [...prev, {
+        if (isNaN(numWeight)) {
+            Alert.alert("Invalid Weight", "Please enter a valid number.");
+            return;
+        }
+
+        if (numWeight <= 0) {
+            Alert.alert("Invalid Weight", "Weight must be greater than 0.");
+            return;
+        }
+
+        try {
+            const newEntry: WeightEntry = {
+                id: Date.now().toString(), // Generate unique ID
                 weight: numWeight,
                 date: new Date().toISOString()
-            }]);
+            };
+
+            // Update local state
+            const updatedEntries = [...weightEntries, newEntry];
+            setWeightEntries(updatedEntries);
+
+            // Save to storage using addWeightEntry
+            await addWeightEntry(newEntry);
+            
             setInputValue("");
             setModalVisible(false);
-        } else {
-            Alert.alert("Invalid Weight", "Please enter a valid weight.");
+        } catch (error) {
+            Alert.alert("Error", "Failed to save weight entry");
+            console.error(error);
         }
+    }
+
+    async function clearAllWeights() {
+        Alert.alert(
+            "Clear History",
+            "Are you sure you want to delete all weight history?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setWeightEntries([]);
+                            await saveWeightHistory([]);
+                        } catch (error) {
+                            Alert.alert("Error", "Failed to clear history");
+                            console.error(error);
+                        }
+                    },
+                },
+            ]
+        );
     }
 
     function formatDate(dateString: string) {
         const date = new Date(dateString);
-        return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
     }
 
     function getChangeText() {
@@ -53,11 +129,20 @@ export default function WeightLog() {
         return weightChange > 0 ? "#ff4444" : "#44aa44";
     }
 
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <Text>Loading weight data...</Text>
+            </View>
+        );
+    }
+
     return(
         <>
             <Pressable 
                 onPress={handlePress}
                 style={styles.container}
+                onLongPress={clearAllWeights}
             >
                 <Text style={styles.heading}>
                     Weight
@@ -79,7 +164,7 @@ export default function WeightLog() {
             >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Weight</Text>
+                        <Text style={styles.modalTitle}>Weight Tracker</Text>
                         <Pressable 
                             onPress={() => setModalVisible(false)}
                             style={styles.closeButton}
@@ -90,15 +175,16 @@ export default function WeightLog() {
 
                     <View style={styles.inputSection}>
                         <Text style={styles.sectionTitle}>
-                            Log new weight:
+                            Log new weight (kg):
                         </Text>
                         <View style={styles.inputContainer}>
                             <TextInput
                                 value={inputValue}
                                 onChangeText={setInputValue}
-                                placeholder="Enter weight in kg"
+                                placeholder="Enter weight"
                                 keyboardType="numeric"
                                 style={styles.textInput}
+                                autoFocus={true}
                             />
                             <Pressable
                                 onPress={handleSaveWeight}
@@ -110,20 +196,34 @@ export default function WeightLog() {
                     </View>
                     
                     <View style={styles.historySection}>
-                        <Text style={styles.sectionTitle}>
-                            Weight history:
-                        </Text>
+                        <View style={styles.historyHeader}>
+                            <Text style={styles.sectionTitle}>
+                                Weight History
+                            </Text>
+                            <Pressable
+                                onPress={clearAllWeights}
+                                style={styles.clearButton}
+                            >
+                                <Text style={styles.clearButtonText}>Clear All</Text>
+                            </Pressable>
+                        </View>
                         <ScrollView style={styles.scrollView}>
-                            {weightEntries.slice().reverse().map((entry, index) => (
-                                <View key={entry.date} style={styles.entryItem}>
-                                    <Text style={styles.entryWeight}>
-                                        {entry.weight.toFixed(1)} kg
-                                    </Text>
-                                    <Text style={styles.entryDate}>
-                                        {formatDate(entry.date)}
-                                    </Text>
-                                </View>
-                            ))}
+                            {weightEntries.length === 0 ? (
+                                <Text style={styles.emptyText}>No weight entries yet</Text>
+                            ) : (
+                                [...weightEntries]
+                                    .reverse()
+                                    .map((entry) => (
+                                        <View key={entry.id} style={styles.entryItem}>
+                                            <Text style={styles.entryWeight}>
+                                                {entry.weight.toFixed(1)} kg
+                                            </Text>
+                                            <Text style={styles.entryDate}>
+                                                {formatDate(entry.date)}
+                                            </Text>
+                                        </View>
+                                    ))
+                            )}
                         </ScrollView>
                     </View>
                 </View>
@@ -143,6 +243,10 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         minHeight: 80,
         justifyContent: 'center',
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     heading: {
         fontSize: 16,
@@ -167,7 +271,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20,
         borderBottomWidth: 1,
-        borderBottomColor: 'black',
+        borderBottomColor: '#eee',
     },
     modalTitle: {
         fontSize: 24,
@@ -222,6 +326,21 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
     },
+    historyHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    clearButton: {
+        padding: 8,
+        backgroundColor: '#ff4444',
+        borderRadius: 6,
+    },
+    clearButtonText: {
+        color: 'white',
+        fontSize: 14,
+    },
     scrollView: {
         flex: 1,
     },
@@ -241,5 +360,11 @@ const styles = StyleSheet.create({
     entryDate: {
         fontSize: 14,
         color: '#666',
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 20,
+        color: '#666',
+        fontStyle: 'italic',
     },
 });
