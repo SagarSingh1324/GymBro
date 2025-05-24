@@ -1,47 +1,42 @@
 // types.ts - Shared type definitions
 
+// Workout related types
+
 export interface Exercise {
   id: string;
   name: string;
-  defaultSets: number;
-  defaultReps: number;
-  restTime: number;
+}
+
+export interface Workout {
+  id: string,
+  exercise: string,
+  sets: number,
+  reps: number;
+  weight: number;
 }
 
 export interface WorkoutTemplate {
-  id: string;
-  name: string;
-  exercises: Exercise[];
-  lastUsed: string;
+  id: string,
+  name: string,
+  exercises: Workout[],
 }
 
+export interface WorkoutSession {
+  id: string;
+  name: string,
+  date: string;
+  duration: number; 
+  exercises: Workout[];
+}
+
+// Weight realted types
 export interface WeightEntry {
   id: string;
   date: string;
   weight: number;
 }
 
-export interface WorkoutSet {
-  reps: number;
-  weight: number;
-  completed: boolean;
-}
-
-export interface WorkoutExercise {
-  id: string;
-  name: string;
-  sets: WorkoutSet[];
-}
-
-export interface WorkoutSession {
-  id: string;
-  templateId: string;
-  date: string;
-  duration: number; // in minutes
-  exercises: WorkoutExercise[];
-  notes?: string;
-}
-
+// Measurements realted types
 export interface MeasurementEntry {
     id: string;
     date: string;

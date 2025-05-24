@@ -1,98 +1,66 @@
 import { WorkoutTemplate } from '@/components/types';
+import FAB from '@/components/ui/fab';
 import { loadWorkoutTemplates, saveWorkoutTemplates } from '@/localstorage/storage';
+import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-// Simple FAB component 
-interface FABProps {
-  style?: any;
-  icon?: string;
-  label: string;
-  onPress: () => void;
-}
-
-const FAB: React.FC<FABProps> = ({ style, icon, label, onPress }) => (
-  <TouchableOpacity style={[styles.fabButton, style]} onPress={onPress}>
-    <Text style={styles.fabText}>{label}</Text>
-  </TouchableOpacity>
-);
+import {
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Logsession() {
+  const isFocused = useIsFocused();
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // refresh templates everytime screen is in focus
   useEffect(() => {
-    loadTemplatesFromStorage();
-  }, []);
+    if (isFocused) { 
+      fetchTemplates();
+    }
+  }, [isFocused]); 
 
-  const loadTemplatesFromStorage = async () => {
+  const fetchTemplates = async () => {
+    const loaded = await loadTemplates(); 
+    loadTemplates(); 
+  };
+
+  const loadTemplates = async () => {
     try {
       setLoading(true);
-      const savedTemplates = await loadWorkoutTemplates();
-      
-      // If no saved templates, use default ones
-      if (savedTemplates.length === 0) {
-        const defaultTemplates: WorkoutTemplate[] = [
-          {
-            id: '1',
-            name: 'Full Body Workout',
-            exercises: [
-              { id: '1', name: 'Squats', defaultSets: 3, defaultReps: 12, restTime: 60 },
-              { id: '2', name: 'Push-ups', defaultSets: 3, defaultReps: 15, restTime: 45 },
-            ],
-            lastUsed: '2023-05-20',
-          },
-          {
-            id: '2',
-            name: 'Push Day',
-            exercises: [
-              { id: '3', name: 'Bench Press', defaultSets: 4, defaultReps: 8, restTime: 90 },
-              { id: '4', name: 'Shoulder Press', defaultSets: 3, defaultReps: 10, restTime: 60 },
-            ],
-            lastUsed: '2023-05-18',
-          },
-        ];
-        await saveWorkoutTemplates(defaultTemplates);
-        setTemplates(defaultTemplates);
-      } else {
-        setTemplates(savedTemplates);
-      }
+      const loadedTemplates = await loadWorkoutTemplates();
+      // Ensure we always have an array
+      setTemplates(Array.isArray(loadedTemplates) ? loadedTemplates : []);
     } catch (error) {
       console.error('Error loading templates:', error);
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const navigateToActiveSession = async (template: WorkoutTemplate) => {
-    // Update last used date
-    const updatedTemplate = {
-      ...template,
-      lastUsed: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
-    };
-
-    // Update templates array
-    const updatedTemplates = templates.map(t => 
-      t.id === template.id ? updatedTemplate : t
-    );
-    
-    // Save to storage
-    await saveWorkoutTemplates(updatedTemplates);
-    setTemplates(updatedTemplates);
-
+  // Navigate to active session with selected template
+  const navigateToActiveSession = (template: WorkoutTemplate) => {
     router.push({
       pathname: '/(tabs)/(logsession)/Activesession',
-      params: { template: JSON.stringify(updatedTemplate) },
+      params: { 
+        templateId: template.id,
+        templateName: template.name 
+      }
     });
   };
 
+  // Navigate to create template screen
   const navigateToTemplateCreator = () => {
     router.push('/(tabs)/(logsession)/Createtemplate');
-  };
-
-  const refreshTemplates = () => {
-    loadTemplatesFromStorage();
   };
 
   if (loading) {
@@ -105,68 +73,95 @@ export default function Logsession() {
     );
   }
 
+  // Function to delete any particular template
+  const handleDeleteTemplate = (templateId: string) => {
+    Alert.alert(
+      'Delete Template',
+      'Are you sure you want to delete this template?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const updatedTemplates = templates.filter(t => t.id !== templateId);
+            setTemplates(updatedTemplates);
+            await saveWorkoutTemplates(updatedTemplates);
+          },
+        },
+      ]
+    );
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+        await loadTemplates();
+    } catch (error) {
+        console.error('Error refreshing data:', error);
+        Alert.alert("Error", "Failed to refresh data");
+    } finally {
+        setRefreshing(false);
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
           <Text style={styles.header}>Start New Session</Text>
-          <TouchableOpacity onPress={refreshTemplates} style={styles.refreshButton}>
-            <Text style={styles.refreshText}>↻</Text>
-          </TouchableOpacity>
         </View>
-        
-        {/* Saved Templates Section */}
+
         <Text style={styles.sectionTitle}>Your Templates</Text>
-        {templates.length > 0 ? (
-          <FlatList
-            horizontal
-            data={templates}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.templateList}
-            renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.templateCard}
-                onPress={() => navigateToActiveSession(item)}
-              >
-                <Text style={styles.templateName}>{item.name}</Text>
-                <Text style={styles.templateDetail}>
-                  {item.exercises.length} {item.exercises.length === 1 ? 'exercise' : 'exercises'}
-                </Text>
-                <Text style={styles.templateDetail}>
-                  Last used: {item.lastUsed}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
-        ) : (
-          <Text style={styles.emptyText}>No templates yet</Text>
-        )}
 
-        {/* Quick Start Option */}
-        <Text style={styles.sectionTitle}>Quick Start</Text>
-        <TouchableOpacity 
-          style={styles.quickStartCard}
-          onPress={() => navigateToActiveSession({
-            id: 'quick-' + Date.now(),
-            name: 'Custom Session',
-            exercises: [],
-            lastUsed: new Date().toISOString().split('T')[0],
-          })}
-        >
-          <Text style={styles.quickStartTitle}>Blank Session</Text>
-          <Text style={styles.quickStartSubtitle}>Add exercises as you go</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        <FlatList
+          data={templates}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.templateList}
+          renderItem={({ item }) => (
+            <TouchableOpacity 
+              style={styles.templateCard}
+              onPress={() => navigateToActiveSession(item)}
+              onLongPress={() => handleDeleteTemplate(item.id)}
+            >
+              <Text style={styles.templateName}>{item.name}</Text>
+              <Text style={styles.templateDetail}>
+                {item.exercises?.length || 0} {(item.exercises?.length || 0) === 1 ? 'workout' : 'workouts'}
+              </Text>
 
-      {/* Create Template Button */}
-      <FAB
-        style={styles.fab}
-        icon="plus"
-        label="Create New Template"
-        onPress={navigateToTemplateCreator}
-      />
-    </View>
+              {item.exercises?.length > 0 && (
+                <View style={{ marginTop: 4 }}>
+                  {item.exercises.map((exercise) => (
+                    <Text key={exercise.id} style={styles.exerciseBullet}>
+                      • {exercise.exercise}
+                    </Text>
+                  ))}
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No templates yet</Text>
+              <Text style={styles.emptySubtext}>Create your first template to get started</Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#3f51b5']}
+            />
+          }
+        />
+
+        {/* Create Template Button */}
+        <FAB
+          icon="plus"
+          label="Create New Template"
+          onPress={navigateToTemplateCreator}
+        />
+      </SafeAreaView>
   );
 }
 
@@ -183,14 +178,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
   },
   header: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-  },
-  refreshButton: {
-    padding: 8,
+    color: '#333',
+    marginBottom: 12,
+    marginTop: 12,
   },
   refreshText: {
     fontSize: 20,
@@ -209,32 +203,45 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
-    marginTop: 16,
+    marginTop: 12,
+    color: '#333',
   },
   templateList: {
-    paddingBottom: 8,
+    paddingBottom: 100,
   },
   templateCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: '#f8f8f8',
     padding: 16,
-    marginRight: 12,
-    width: 180,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginVertical: 8,
+    borderRadius: 10,
     elevation: 2,
   },
   templateName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 8,
+    color: '#333',
   },
   templateDetail: {
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  emptyText: {
+      textAlign: 'center',
+      marginTop: 24,
+      color: '#666',
+      fontStyle: 'italic',
+      fontWeight: 'bold',
+  },
+  emptySubtext: {
+    color: '#bbb',
+    fontSize: 16,
+    marginTop: 4,
   },
   quickStartCard: {
     backgroundColor: 'white',
@@ -246,42 +253,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   quickStartTitle: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#333',
   },
   quickStartSubtitle: {
     fontSize: 14,
     color: '#666',
     marginTop: 4,
   },
-  emptyText: {
-    color: '#999',
-    fontStyle: 'italic',
-    marginBottom: 16,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#3f51b5',
-  },
-  fabButton: {
-    backgroundColor: '#3f51b5',
-    borderRadius: 28,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  fabText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
+  exerciseBullet: {
+    fontSize: 12,
+    color: '#777',
+    marginLeft: 8,
+    marginTop: 2,
   },
 });

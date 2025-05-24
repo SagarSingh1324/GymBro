@@ -23,8 +23,6 @@ export default function Measurements() {
     // Current measurements state
     const [measures, setMeasures] = useState<CurrentMeasurement[]>([
         { part: "Height", measure: "180" },
-        { part: "Bicep", measure: "30" },
-        { part: "Waist", measure: "70" },
     ]);
 
     // History state
@@ -54,7 +52,7 @@ export default function Measurements() {
             if (savedMeasurements.length > 0) {
                 setMeasures(savedMeasurements);
             }
-
+            
             // Load measurements history with proper error handling
             const history = await loadMeasurementsHistory();
             // Sort by date (newest first)
@@ -270,6 +268,13 @@ export default function Measurements() {
     }
     };
 
+    // reders if no saved history
+    const ListEmptyComponent = (
+    <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>No measurements saved yet</Text>
+    </View>
+    );
+
     const ListHeaderComponent = (
         <View>
             <Text style={styles.title}>Set your measurements (cm):</Text>
@@ -309,19 +314,21 @@ export default function Measurements() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={saveMeasurementsToHistory} style={styles.saveButton}>
-                <Text style={styles.saveButtonText}>📊 Save to History</Text>
+                <Text style={styles.saveButtonText}>Save to History</Text>
             </TouchableOpacity>
 
-        {/* Updated History Header with Clear Button */}
-        <View style={styles.historyHeader}>
-        <Text style={styles.historyTitle}>Measurement History:</Text>
-        <TouchableOpacity 
-            onPress={confirmClearHistory}
-            style={styles.clearButton}
-        >
-            <Text style={styles.clearButtonText}>Clear History</Text>
-        </TouchableOpacity>
-        </View>
+            {/* Updated History Header with Clear Button */}
+            {measurementHistory.length > 0 && (
+            <View style={styles.historyHeader}>
+                <Text style={styles.historyTitle}>Measurement History:</Text>
+                <TouchableOpacity 
+                onPress={confirmClearHistory}
+                style={styles.clearButton}
+                >
+                <Text style={styles.clearButtonText}>Clear History</Text>
+                </TouchableOpacity>
+            </View>
+            )}
         </View>
     );
 
@@ -343,6 +350,7 @@ export default function Measurements() {
                 ListHeaderComponent={ListHeaderComponent}
                 ListFooterComponent={renderFooter}
                 onEndReached={loadMoreData}
+                ListEmptyComponent={ListEmptyComponent}
                 onEndReachedThreshold={0.5}
                 refreshControl={
                     <RefreshControl
@@ -476,20 +484,33 @@ const styles = StyleSheet.create({
         marginLeft: 8,
         color: '#666',
     },
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    historyHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    clearButton: {
+        backgroundColor: '#ff4444',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+    },
+    clearButtonText: {
+        color: 'white',
+        fontSize: 14,
+    },
+    emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  clearButton: {
-    backgroundColor: '#ff4444',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  clearButtonText: {
-    color: 'white',
-    fontSize: 14,
-  },
+    padding: 20,
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 20,
+        color: '#666',
+        fontStyle: 'italic',
+        fontWeight: 'bold',
+    },
 });

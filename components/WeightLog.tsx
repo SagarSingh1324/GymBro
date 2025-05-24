@@ -209,7 +209,7 @@ export default function WeightLog() {
                         </View>
                         <ScrollView style={styles.scrollView}>
                             {weightEntries.length === 0 ? (
-                                <Text style={styles.emptyText}>No weight entries yet</Text>
+                                <Text style={styles.emptyText}>No weight saved entries yet</Text>
                             ) : (
                                 [...weightEntries]
                                     .reverse()
@@ -366,5 +366,6 @@ const styles = StyleSheet.create({
         marginTop: 20,
         color: '#666',
         fontStyle: 'italic',
+        fontWeight: 'bold',
     },
 });
