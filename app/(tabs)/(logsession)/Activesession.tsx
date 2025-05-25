@@ -1,13 +1,15 @@
 import { Workout, WorkoutSession } from '@/components/types';
 import { loadWorkoutTemplates, saveWorkoutSession } from '@/localstorage/storage';
+import { useTheme } from '@/theme/ThemeContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ActiveSession() {
   const { templateId, templateName } = useLocalSearchParams<{ templateId: string; templateName: string }>();
   const router = useRouter();
+  const { theme } = useTheme();
 
   const [exercises, setExercises] = useState<Workout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,6 +18,8 @@ export default function ActiveSession() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const intervalRef = useRef<number | null>(null);
+
+  const styles = createStyles(theme);
 
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -72,15 +76,15 @@ export default function ActiveSession() {
     Alert.alert('Workout Started', 'Session timer is running.');
   };
 
-    const handleEndSession = async () => {
+  const handleEndSession = async () => {
     if (!startTime) {
-    Alert.alert('Error', 'Start the session first.');
-    return;
+      Alert.alert('Error', 'Start the session first.');
+      return;
     }
 
     if (intervalRef.current !== null) {
-    clearInterval(intervalRef.current);
-    intervalRef.current = null;
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
 
     setIsRunning(false);
@@ -88,151 +92,238 @@ export default function ActiveSession() {
     const durationInMilliseconds = elapsedTime;
 
     const session: WorkoutSession = {
-    id: `${templateId}-${Date.now()}`,
-    name: templateName,
-    date: new Date().toISOString(), 
-    duration: durationInMilliseconds,
-    exercises: exercises,
+      id: `${templateId}-${Date.now()}`,
+      name: templateName,
+      date: new Date().toISOString(), 
+      duration: durationInMilliseconds,
+      exercises: exercises,
     };
 
     await saveWorkoutSession(session);
     Alert.alert('Workout Saved', `Duration: ${formatTime(durationInMilliseconds)}`);
-    router.replace('/(tabs)/History');
-    };
+    router.back();
+  };
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#666" />
-        <Text>Loading session...</Text>
+      <View style={[styles.centered, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.text }]}>Loading session...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>{templateName} Session</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.title, { color: theme.text }]}>{templateName} Session</Text>
 
       <FlatList
         data={exercises}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.exerciseName}>{item.exercise}</Text>
+          <View style={[styles.card, { backgroundColor: theme.secondary, borderColor: theme.border }]}>
+            <Text style={[styles.exerciseName, { color: theme.text }]}>{item.exercise}</Text>
+            
             <View style={styles.row}>
-
-                <Text>Sets: </Text>
-                <TextInput
-                  editable={isRunning}
-                  style={styles.input}
-                  keyboardType="number-pad"
-                  value={String(item.sets)}
-                  onChangeText={(text) => {
+              <Text style={[styles.label, { color: theme.text }]}>Sets: </Text>
+              <TextInput
+                editable={isRunning}
+                style={[
+                  styles.input,
+                  { 
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }
+                ]}
+                keyboardType="number-pad"
+                value={String(item.sets)}
+                onChangeText={(text) => {
                   const updated = exercises.map((ex) =>
-                      ex.id === item.id ? { ...ex, sets: Number(text) || 0 } : ex
+                    ex.id === item.id ? { ...ex, sets: Number(text) || 0 } : ex
                   );
                   setExercises(updated);
-                  }}
-                />
-                </View>
-
-                <View style={styles.row}>
-                <Text>Reps: </Text>
-                <TextInput
-                  editable={isRunning}
-                  style={styles.input}
-                  keyboardType="number-pad"
-                  value={String(item.reps)}
-                  onChangeText={(text) => {
-                  const updated = exercises.map((ex) =>
-                      ex.id === item.id ? { ...ex, reps: Number(text) || 0 } : ex
-                  );
-                  setExercises(updated);
-                  }}
-                />
-                </View>
-
-                <View style={styles.row}>
-                    <Text>Weight (kg): </Text>
-                    <TextInput
-                      editable={isRunning}
-                      style={styles.input}
-                      keyboardType="decimal-pad"
-                      value={String(item.weight)}
-                      onChangeText={(text) => {
-                          const updated = exercises.map((ex) =>
-                          ex.id === item.id ? { ...ex, weight: parseFloat(text) || 0 } : ex
-                          );
-                          setExercises(updated);
-                      }}
-                    />
-                </View>
-
+                }}
+              />
             </View>
+
+            <View style={styles.row}>
+              <Text style={[styles.label, { color: theme.text }]}>Reps: </Text>
+              <TextInput
+                editable={isRunning}
+                style={[
+                  styles.input,
+                  { 
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }
+                ]}
+                keyboardType="number-pad"
+                value={String(item.reps)}
+                onChangeText={(text) => {
+                  const updated = exercises.map((ex) =>
+                    ex.id === item.id ? { ...ex, reps: Number(text) || 0 } : ex
+                  );
+                  setExercises(updated);
+                }}
+              />
+            </View>
+
+            <View style={styles.row}>
+              <Text style={[styles.label, { color: theme.text }]}>Weight (kg): </Text>
+              <TextInput
+                editable={isRunning}
+                style={[
+                  styles.input,
+                  { 
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }
+                ]}
+                keyboardType="decimal-pad"
+                value={String(item.weight)}
+                onChangeText={(text) => {
+                  const updated = exercises.map((ex) =>
+                    ex.id === item.id ? { ...ex, weight: parseFloat(text) || 0 } : ex
+                  );
+                  setExercises(updated);
+                }}
+              />
+            </View>
+          </View>
         )}
-        ListEmptyComponent={<Text>No exercises found in this template.</Text>}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: theme.text }]}>
+              No exercises found in this template.
+            </Text>
+          </View>
+        }
       />
 
       {isRunning && (
-        <Text style={styles.timerText}>
-          Elapsed Time: {formatTime(elapsedTime)}
-        </Text>
+        <View style={[styles.timerContainer, { backgroundColor: theme.secondary, borderColor: theme.border }]}>
+          <Text style={[styles.timerText, { color: theme.primary }]}>
+            Elapsed Time: {formatTime(elapsedTime)}
+          </Text>
+        </View>
       )}
 
-      {!isRunning && !startTime ? (
-        <Button title="Start Workout" onPress={handleStartSession} />
-      ) : (
-        <Button title="End & Save Session" onPress={handleEndSession} />
-      )}
+      <View style={styles.buttonContainer}>
+        {!isRunning && !startTime ? (
+          <TouchableOpacity
+            style={[styles.button, styles.startButton, { backgroundColor: theme.primary }]}
+            onPress={handleStartSession}
+          >
+            <Text style={[styles.buttonText, { color: '#fff' }]}>Start Workout</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.button, styles.endButton, { backgroundColor: theme.primary }]}
+            onPress={handleEndSession}
+          >
+            <Text style={[styles.buttonText, { color: '#fff' }]}>End & Save Session</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-    },
-    centered: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    card: {
-        backgroundColor: '#f0f0f0',
-        padding: 16,
-        borderRadius: 10,
-        marginVertical: 8,
-    },
-    exerciseName: {
-        fontSize: 18,
-        fontWeight: '600',
-    },
-    timerText: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginVertical: 20,
-    },
-    input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 6,
-    marginLeft: 8,
-    width: 60,
-    borderRadius: 4,
+const createStyles = (theme: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
     textAlign: 'center',
-    },
-
-    row: {
+  },
+  card: {
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 8,
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  exerciseName: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 6,
-    },
+  },
+  label: {
+    fontSize: 16,
+    minWidth: 100,
+  },
+  input: {
+    borderWidth: 1,
+    padding: 8,
+    marginLeft: 8,
+    width: 80,
+    borderRadius: 6,
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+  },
+  timerContainer: {
+    marginVertical: 20,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  timerText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    paddingVertical: 10,
+  },
+  button: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  startButton: {
+    // Additional styling for start button if needed
+  },
+  endButton: {
+    // Additional styling for end button if needed
+  },
+  buttonText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
 });

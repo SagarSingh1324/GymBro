@@ -1,5 +1,6 @@
 import { Workout, WorkoutSession } from "@/components/types";
 import { clearWorkoutSessions, loadWorkoutSessions } from "@/localstorage/storage";
+import { Theme, useTheme } from "@/theme/ThemeContext";
 import { useIsFocused } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -16,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const ITEMS_PER_PAGE = 10;
 
 export default function History() {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const isFocused = useIsFocused();
   const [workoutSessions, setWorkoutSessions] = useState<WorkoutSession[]>([]);
   const [displayedSessions, setDisplayedSessions] = useState<WorkoutSession[]>([]);
@@ -162,7 +165,7 @@ export default function History() {
 
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#007AFF" />
+        <ActivityIndicator size="small" color={theme.primary} />
         <Text style={styles.loadingText}>Loading more sessions...</Text>
       </View>
     );
@@ -181,7 +184,7 @@ export default function History() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Loading workout history...</Text>
         </View>
       </SafeAreaView>
@@ -218,7 +221,9 @@ export default function History() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#3f51b5']}
+            colors={[theme.primary]}
+            tintColor={theme.primary}
+            progressBackgroundColor={theme.secondary}
           />
         }
       />
@@ -226,41 +231,45 @@ export default function History() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-    backgroundColor: '#ffffff',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.border,
+    backgroundColor: theme.secondary,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#212529',
+    color: theme.text,
     marginBottom: 12,
     marginTop: 12,
+    paddingHorizontal: 20,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6c757d',
+    color: theme.text,
+    opacity: 0.7,
   },
   listContainer: {
     padding: 16,
     flexGrow: 1,
   },
   sessionCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.secondary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.border,
+    shadowColor: theme.text,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -278,20 +287,23 @@ const styles = StyleSheet.create({
   sessionName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#212529',
+    color: theme.text,
     flex: 1,
   },
   sessionDate: {
     fontSize: 14,
-    color: '#6c757d',
+    color: theme.text,
+    opacity: 0.6,
   },
   sessionStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 16,
     paddingVertical: 12,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.background,
     borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.border,
   },
   statItem: {
     alignItems: 'center',
@@ -299,12 +311,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: theme.primary,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
-    color: '#6c757d',
+    color: theme.text,
+    opacity: 0.6,
     textTransform: 'uppercase',
   },
   exercisesList: {
@@ -312,12 +325,13 @@ const styles = StyleSheet.create({
   },
   exerciseItem: {
     fontSize: 14,
-    color: '#495057',
+    color: theme.text,
+    opacity: 0.8,
     lineHeight: 20,
   },
   moreExercises: {
     fontSize: 14,
-    color: '#007AFF',
+    color: theme.primary,
     fontStyle: 'italic',
     marginTop: 4,
   },
@@ -336,7 +350,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#6c757d',
+    color: theme.text,
+    opacity: 0.7,
   },
   emptyState: {
     flex: 1,
@@ -348,12 +363,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontStyle: 'italic',
     fontWeight: 'bold',
-    color: '#666',
+    color: theme.text,
+    opacity: 0.6,
     marginBottom: 8,
   },
   emptyMessage: {
     fontSize: 16,
-    color: '#bbb',
+    color: theme.text,
+    opacity: 0.5,
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -366,5 +383,6 @@ const styles = StyleSheet.create({
   clearText: {
     color: 'white',
     fontSize: 14,
+    fontWeight: '600',
   },
 });

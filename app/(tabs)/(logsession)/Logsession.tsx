@@ -1,6 +1,7 @@
 import { WorkoutTemplate } from '@/components/types';
 import FAB from '@/components/ui/fab';
 import { loadWorkoutTemplates, saveWorkoutTemplates } from '@/localstorage/storage';
+import { Theme, useTheme } from '@/theme/ThemeContext';
 import { useIsFocused } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -16,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Logsession() {
+  const { theme } = useTheme();
   const isFocused = useIsFocused();
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,11 +65,15 @@ export default function Logsession() {
     router.push('/(tabs)/(logsession)/Createtemplate');
   };
 
+  const styles = createStyles(theme);
+
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading templates...</Text>
+          <Text style={[styles.loadingText, { color: theme.text }]}>
+            Loading templates...
+          </Text>
         </View>
       </View>
     );
@@ -106,12 +112,16 @@ export default function Logsession() {
   };
 
   return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.headerContainer}>
-          <Text style={styles.header}>Start New Session</Text>
+          <Text style={[styles.header, { color: theme.text }]}>
+            Start New Session
+          </Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Your Templates</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          Your Templates
+        </Text>
 
         <FlatList
           data={templates}
@@ -120,19 +130,27 @@ export default function Logsession() {
           contentContainerStyle={styles.templateList}
           renderItem={({ item }) => (
             <TouchableOpacity 
-              style={styles.templateCard}
+              style={[styles.templateCard, { 
+                backgroundColor: theme.secondary,
+                borderColor: theme.border 
+              }]}
               onPress={() => navigateToActiveSession(item)}
               onLongPress={() => handleDeleteTemplate(item.id)}
             >
-              <Text style={styles.templateName}>{item.name}</Text>
-              <Text style={styles.templateDetail}>
+              <Text style={[styles.templateName, { color: theme.text }]}>
+                {item.name}
+              </Text>
+              <Text style={[styles.templateDetail, { color: theme.text }]}>
                 {item.exercises?.length || 0} {(item.exercises?.length || 0) === 1 ? 'workout' : 'workouts'}
               </Text>
 
               {item.exercises?.length > 0 && (
                 <View style={{ marginTop: 4 }}>
                   {item.exercises.map((exercise) => (
-                    <Text key={exercise.id} style={styles.exerciseBullet}>
+                    <Text 
+                      key={exercise.id} 
+                      style={[styles.exerciseBullet, { color: theme.text }]}
+                    >
                       • {exercise.exercise}
                     </Text>
                   ))}
@@ -142,15 +160,20 @@ export default function Logsession() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No templates yet</Text>
-              <Text style={styles.emptySubtext}>Create your first template to get started</Text>
+              <Text style={[styles.emptyText, { color: theme.text }]}>
+                No templates yet
+              </Text>
+              <Text style={[styles.emptySubtext, { color: theme.text }]}>
+                Create your first template to get started
+              </Text>
             </View>
           }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#3f51b5']}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
             />
           }
         />
@@ -165,10 +188,9 @@ export default function Logsession() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   scrollContainer: {
     padding: 16,
@@ -178,17 +200,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
   },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 12,
     marginTop: 12,
   },
   refreshText: {
     fontSize: 20,
-    color: '#3f51b5',
+    color: theme.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -197,34 +219,36 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
     marginTop: 12,
-    color: '#333',
+    paddingHorizontal: 16,
   },
   templateList: {
     paddingBottom: 100,
+    paddingHorizontal: 16,
   },
   templateCard: {
-    backgroundColor: '#f8f8f8',
     padding: 16,
     marginVertical: 8,
-    borderRadius: 10,
+    borderRadius: 12,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    borderWidth: 1,
   },
   templateName: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#333',
   },
   templateDetail: {
     fontSize: 12,
-    color: '#666',
     marginTop: 2,
   },
   emptyContainer: {
@@ -232,19 +256,17 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   emptyText: {
-      textAlign: 'center',
-      marginTop: 24,
-      color: '#666',
-      fontStyle: 'italic',
-      fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 24,
+    fontStyle: 'italic',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   emptySubtext: {
-    color: '#bbb',
-    fontSize: 16,
+    fontSize: 14,
     marginTop: 4,
   },
   quickStartCard: {
-    backgroundColor: 'white',
     borderRadius: 12,
     padding: 20,
     marginTop: 8,
@@ -254,21 +276,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    backgroundColor: theme.secondary,
+    borderColor: theme.border,
   },
   quickStartTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.text,
   },
   quickStartSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.text,
     marginTop: 4,
   },
   exerciseBullet: {
     fontSize: 12,
-    color: '#777',
     marginLeft: 8,
     marginTop: 2,
   },

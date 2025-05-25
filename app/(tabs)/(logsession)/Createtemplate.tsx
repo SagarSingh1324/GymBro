@@ -1,5 +1,6 @@
 import { Exercise, Workout, WorkoutTemplate } from '@/components/types';
-import { loadExercises, loadWorkoutTemplates, saveExercises, saveWorkoutTemplates } from '@/localstorage/storage';
+import { loadExercises, loadWorkoutTemplates, saveExercises, saveWorkoutTemplates, } from '@/localstorage/storage';
+import { useTheme } from '@/theme/ThemeContext';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CreateTemplate() {
+  const { theme, isDarkMode } = useTheme();
   const [templateName, setTemplateName] = useState('');
   const [selectedExercises, setSelectedExercises] = useState<Workout[]>([]);
   const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
@@ -114,43 +116,6 @@ export default function CreateTemplate() {
     }
   };
 
-  // Helper function to update an exercise name
-  const updateExercise = async (exerciseId: string, newName: string) => {
-    try {
-      const existingExercises = await loadExercises();
-      
-      // Check if new name already exists (excluding current exercise)
-      const nameExists = existingExercises.some(
-        exercise => exercise.id !== exerciseId && 
-                   exercise.name.toLowerCase() === newName.toLowerCase()
-      );
-      
-      if (nameExists) {
-        Alert.alert('Error', 'Exercise name already exists');
-        return;
-      }
-      
-      // Update the exercise
-      const updatedExercises = existingExercises.map(exercise =>
-        exercise.id === exerciseId
-          ? { ...exercise, name: newName.trim() }
-          : exercise
-      );
-      
-      // Save updated list
-      await saveExercises(updatedExercises);
-      
-      // Update local state
-      setAvailableExercises(updatedExercises);
-      
-      Alert.alert('Success', 'Exercise updated successfully!');
-      console.log('Exercise updated:', exerciseId, 'to', newName);
-    } catch (error) {
-      console.error('Error updating exercise:', error);
-      Alert.alert('Error', 'Failed to update exercise');
-    }
-  };
-
   const addExerciseToTemplate = (exercise: Exercise) => {
     const newWorkout: Workout = {
       id: generateId(),
@@ -233,12 +198,12 @@ export default function CreateTemplate() {
   );
 
   const renderExerciseItem = ({ item }: { item: Exercise }) => (
-    <View style={styles.exerciseListItemContainer}>
+    <View style={[styles.exerciseListItemContainer, { borderBottomColor: theme.border }]}>
       <TouchableOpacity
         style={styles.exerciseListItem}
         onPress={() => addExerciseToTemplate(item)}
       >
-        <Text style={styles.exerciseListItemText}>{item.name}</Text>
+        <Text style={[styles.exerciseListItemText, { color: theme.text }]}>{item.name}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.deleteExerciseButton}
@@ -259,9 +224,9 @@ export default function CreateTemplate() {
   );
 
   const renderSelectedExercise = ({ item, index }: { item: Workout; index: number }) => (
-    <View style={styles.selectedExerciseCard}>
+    <View style={[styles.selectedExerciseCard, { backgroundColor: theme.background, borderColor: theme.border }]}>
       <View style={styles.exerciseHeader}>
-        <Text style={styles.exerciseName}>{item.exercise}</Text>
+        <Text style={[styles.exerciseName, { color: theme.text }]}>{item.exercise}</Text>
         <TouchableOpacity
           style={styles.removeButton}
           onPress={() => removeExerciseFromTemplate(item.id)}
@@ -272,9 +237,13 @@ export default function CreateTemplate() {
 
       <View style={styles.exerciseInputs}>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Sets</Text>
+          <Text style={[styles.inputLabel, { color: isDarkMode ? '#9ca3af' : '#6c757d' }]}>Sets</Text>
           <TextInput
-            style={styles.numberInput}
+            style={[styles.numberInput, { 
+              backgroundColor: theme.secondary, 
+              borderColor: theme.border, 
+              color: theme.text 
+            }]}
             value={item.sets.toString()}
             onChangeText={(text) => {
               const num = parseInt(text) || 0;
@@ -282,13 +251,18 @@ export default function CreateTemplate() {
             }}
             keyboardType="numeric"
             placeholder="0"
+            placeholderTextColor={isDarkMode ? '#6c757d' : '#9ca3af'}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Reps</Text>
+          <Text style={[styles.inputLabel, { color: isDarkMode ? '#9ca3af' : '#6c757d' }]}>Reps</Text>
           <TextInput
-            style={styles.numberInput}
+            style={[styles.numberInput, { 
+              backgroundColor: theme.secondary, 
+              borderColor: theme.border, 
+              color: theme.text 
+            }]}
             value={item.reps.toString()}
             onChangeText={(text) => {
               const num = parseInt(text) || 0;
@@ -296,13 +270,18 @@ export default function CreateTemplate() {
             }}
             keyboardType="numeric"
             placeholder="0"
+            placeholderTextColor={isDarkMode ? '#6c757d' : '#9ca3af'}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Weight (lbs)</Text>
+          <Text style={[styles.inputLabel, { color: isDarkMode ? '#9ca3af' : '#6c757d' }]}>Weight (lbs)</Text>
           <TextInput
-            style={styles.numberInput}
+            style={[styles.numberInput, { 
+              backgroundColor: theme.secondary, 
+              borderColor: theme.border, 
+              color: theme.text 
+            }]}
             value={item.weight.toString()}
             onChangeText={(text) => {
               const num = parseFloat(text) || 0;
@@ -310,6 +289,7 @@ export default function CreateTemplate() {
             }}
             keyboardType="numeric"
             placeholder="0"
+            placeholderTextColor={isDarkMode ? '#6c757d' : '#9ca3af'}
           />
         </View>
       </View>
@@ -318,38 +298,42 @@ export default function CreateTemplate() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading exercises...</Text>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: isDarkMode ? '#9ca3af' : '#6c757d' }]}>Loading exercises...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Workout Template</Text>
+        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+          <Text style={[styles.title, { color: theme.text }]}>Create Workout Template</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Template Name</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Template Name</Text>
           <TextInput
-            style={styles.templateNameInput}
+            style={[styles.templateNameInput, { 
+              backgroundColor: theme.background, 
+              borderColor: theme.border, 
+              color: theme.text 
+            }]}
             value={templateName}
             onChangeText={setTemplateName}
             placeholder="Enter template name (e.g., Push Day, Leg Day)"
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={isDarkMode ? '#6c757d' : '#9ca3af'}
           />
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Exercises ({selectedExercises.length})</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Exercises ({selectedExercises.length})</Text>
             <TouchableOpacity
-              style={styles.addButton}
+              style={[styles.addButton, { backgroundColor: theme.primary }]}
               onPress={() => setExerciseModalVisible(true)}
             >
               <Text style={styles.addButtonText}>+ Add Exercise</Text>
@@ -357,9 +341,9 @@ export default function CreateTemplate() {
           </View>
 
           {selectedExercises.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No exercises added yet</Text>
-              <Text style={styles.emptySubtext}>Tap "Add Exercise" to get started</Text>
+            <View style={[styles.emptyState, { backgroundColor: theme.background, borderColor: theme.border }]}>
+              <Text style={[styles.emptyText, { color: isDarkMode ? '#9ca3af' : '#6c757d' }]}>No exercises added yet</Text>
+              <Text style={[styles.emptySubtext, { color: isDarkMode ? '#6c757d' : '#9ca3af' }]}>Tap "Add Exercise" to get started</Text>
             </View>
           ) : (
             <FlatList
@@ -394,25 +378,29 @@ export default function CreateTemplate() {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.modalHeader, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
             <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setExerciseModalVisible(false)}
             >
-              <Text style={styles.modalCloseText}>Cancel</Text>
+              <Text style={[styles.modalCloseText, { color: theme.primary }]}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Select Exercise</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Exercise</Text>
             <View style={styles.modalPlaceholder} />
           </View>
 
-          <View style={styles.searchContainer}>
+          <View style={[styles.searchContainer, { backgroundColor: theme.background }]}>
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { 
+                backgroundColor: theme.secondary, 
+                borderColor: theme.border, 
+                color: theme.text 
+              }]}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search exercises..."
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={isDarkMode ? '#6c757d' : '#9ca3af'}
             />
           </View>
 
@@ -424,13 +412,20 @@ export default function CreateTemplate() {
               <Text style={styles.addNewExerciseButtonText}>+ Add New Exercise</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.addExerciseForm}>
+            <View style={[styles.addExerciseForm, { 
+              backgroundColor: theme.secondary, 
+              borderColor: theme.border 
+            }]}>
               <TextInput
-                style={styles.newExerciseInput}
+                style={[styles.newExerciseInput, { 
+                  backgroundColor: theme.background, 
+                  borderColor: theme.border, 
+                  color: theme.text 
+                }]}
                 value={newExerciseName}
                 onChangeText={setNewExerciseName}
                 placeholder="Enter exercise name..."
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={isDarkMode ? '#6c757d' : '#9ca3af'}
                 autoFocus
               />
               <View style={styles.addExerciseButtons}>
@@ -461,7 +456,7 @@ export default function CreateTemplate() {
             data={filteredExercises}
             renderItem={renderExerciseItem}
             keyExtractor={(item) => item.id}
-            style={styles.exerciseList}
+            style={[styles.exerciseList, { backgroundColor: theme.background }]}
             showsVerticalScrollIndicator={false}
           />
         </SafeAreaView>
@@ -473,7 +468,6 @@ export default function CreateTemplate() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   scrollView: {
     flex: 1,
@@ -486,19 +480,15 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#6c757d',
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#212529',
   },
   section: {
     marginTop: 20,
@@ -513,20 +503,15 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#212529',
     marginBottom: 12,
   },
   templateNameInput: {
-    backgroundColor: '#ffffff',
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#e9ecef',
-    color: '#212529',
   },
   addButton: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -537,30 +522,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyState: {
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e9ecef',
     borderStyle: 'dashed',
   },
   emptyText: {
     fontSize: 18,
-    color: '#6c757d',
     marginBottom: 4,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9ca3af',
   },
   selectedExerciseCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e9ecef',
   },
   exerciseHeader: {
     flexDirection: 'row',
@@ -571,7 +550,6 @@ const styles = StyleSheet.create({
   exerciseName: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#212529',
     flex: 1,
   },
   removeButton: {
@@ -597,19 +575,15 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: '#6c757d',
     marginBottom: 6,
     fontWeight: '500',
   },
   numberInput: {
-    backgroundColor: '#f8f9fa',
     borderRadius: 6,
     padding: 12,
     fontSize: 16,
     textAlign: 'center',
     borderWidth: 1,
-    borderColor: '#e9ecef',
-    color: '#212529',
   },
   saveButton: {
     backgroundColor: '#28a745',
@@ -629,7 +603,6 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -637,21 +610,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
   },
   modalCloseButton: {
     padding: 4,
   },
   modalCloseText: {
-    color: '#007AFF',
     fontSize: 16,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#212529',
   },
   modalPlaceholder: {
     width: 60,
@@ -659,26 +628,20 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
   },
   searchInput: {
-    backgroundColor: '#f8f9fa',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#e9ecef',
-    color: '#212529',
   },
   exerciseList: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   exerciseListItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f3f4',
   },
   exerciseListItem: {
     flex: 1,
@@ -687,7 +650,6 @@ const styles = StyleSheet.create({
   },
   exerciseListItemText: {
     fontSize: 16,
-    color: '#212529',
   },
   deleteExerciseButton: {
     paddingHorizontal: 16,
@@ -715,22 +677,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addExerciseForm: {
-    backgroundColor: '#f8f9fa',
     marginHorizontal: 20,
     marginVertical: 12,
     padding: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e9ecef',
   },
   newExerciseInput: {
-    backgroundColor: '#ffffff',
     borderRadius: 6,
     padding: 12,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#e9ecef',
-    color: '#212529',
     marginBottom: 12,
   },
   addExerciseButtons: {

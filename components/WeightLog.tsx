@@ -3,41 +3,52 @@ import {
     loadWeightHistory,
     saveWeightHistory
 } from "@/localstorage/storage";
+import { useTheme } from "@/theme/ThemeContext";
+import { useIsFocused } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { WeightEntry } from "./types";
 
 export default function WeightLog() {
+    const { theme, isDarkMode } = useTheme();
+    const isFocused = useIsFocused();
     const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [inputValue, setInputValue] = useState("");
     const [loading, setLoading] = useState(true);
 
-    // Load saved weight history on mount
+    // refresh measurements everytime screen is in focus
     useEffect(() => {
-        const loadData = async () => {
-            try {
-                const savedHistory = await loadWeightHistory();
-                if (savedHistory.length > 0) {
-                    setWeightEntries(savedHistory);
-                } else {
-                    // Initialize with default if no history exists
-                    setWeightEntries([{ 
-                        id: Date.now().toString(),
-                        weight: 80, 
-                        date: new Date().toISOString() 
-                    }]);
-                }
-            } catch (error) {
-                Alert.alert("Error", "Failed to load weight history");
-                console.error(error);
-            } finally {
-                setLoading(false);
+        if (isFocused) { 
+        fetchTemplates();
+        }
+    }, [isFocused]); 
+
+    const fetchTemplates = async () => {
+        const loaded = await loadData();
+    };
+
+    // Load saved weight history on mount
+    const loadData = async () => {
+        try {
+            const savedHistory = await loadWeightHistory();
+            if (savedHistory.length > 0) {
+                setWeightEntries(savedHistory);
+            } else {
+                // Initialize with default if no history exists
+                setWeightEntries([{ 
+                    id: Date.now().toString(),
+                    weight: 80, 
+                    date: new Date().toISOString() 
+                }]);
             }
-        };
-        
-        loadData();
-    }, []);
+        } catch (error) {
+            Alert.alert("Error", "Failed to load weight history");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const currentWeight = weightEntries[weightEntries.length - 1]?.weight || 0;
     const previousWeight = weightEntries.length > 1 ? weightEntries[weightEntries.length - 2].weight : null;
@@ -67,16 +78,14 @@ export default function WeightLog() {
 
         try {
             const newEntry: WeightEntry = {
-                id: Date.now().toString(), // Generate unique ID
+                id: Date.now().toString(),
                 weight: numWeight,
                 date: new Date().toISOString()
             };
 
-            // Update local state
             const updatedEntries = [...weightEntries, newEntry];
             setWeightEntries(updatedEntries);
 
-            // Save to storage using addWeightEntry
             await addWeightEntry(newEntry);
             
             setInputValue("");
@@ -125,14 +134,80 @@ export default function WeightLog() {
     }
 
     function getChangeColor() {
-        if (!weightChange) return "#666";
-        return weightChange > 0 ? "#ff4444" : "#44aa44";
+        if (!weightChange) return theme.text + '80'; // 50% opacity
+        return weightChange > 0 ? '#FF6B6B' : '#51CF66'; // Modern red/green
     }
+
+    // Create dynamic styles based on theme
+    const dynamicStyles = StyleSheet.create({
+        container: {
+            backgroundColor: theme.background,
+            borderColor: theme.border,
+            shadowColor: isDarkMode ? '#000' : '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: isDarkMode ? 0.3 : 0.1,
+            shadowRadius: 12,
+            elevation: 8,
+        },
+        heading: {
+            color: theme.text + 'CC', // 80% opacity
+        },
+        currentWeight: {
+            color: theme.primary,
+        },
+        weightChange: {
+            color: getChangeColor(),
+        },
+        modalContainer: {
+            backgroundColor: theme.background,
+        },
+        modalTitle: {
+            color: theme.text,
+        },
+        closeButton: {
+            backgroundColor: theme.primary,
+        },
+        sectionTitle: {
+            color: theme.text,
+        },
+        textInput: {
+            borderColor: theme.border,
+            backgroundColor: theme.secondary,
+            color: theme.text,
+        },
+        saveButton: {
+            backgroundColor: theme.primary,
+        },
+        entryWeight: {
+            color: theme.text,
+        },
+        entryDate: {
+            color: theme.text + '99', // 60% opacity
+        },
+        emptyText: {
+            color: theme.text + '99',
+        },
+        loadingText: {
+            color: theme.text,
+        },
+        historyHeader: {
+            borderBottomColor: theme.border,
+        },
+        entryItem: {
+            backgroundColor: theme.secondary + '40', // 25% opacity
+            borderColor: theme.border,
+        },
+    });
 
     if (loading) {
         return (
-            <View style={[styles.container, styles.loadingContainer]}>
-                <Text>Loading weight data...</Text>
+            <View style={[styles.container, dynamicStyles.container, styles.loadingContainer]}>
+                <View style={styles.loadingContent}>
+                    <View style={styles.loadingSpinner} />
+                    <Text style={[styles.loadingText, dynamicStyles.loadingText]}>
+                        Loading weight data...
+                    </Text>
+                </View>
             </View>
         );
     }
@@ -141,20 +216,36 @@ export default function WeightLog() {
         <>
             <Pressable 
                 onPress={handlePress}
-                style={styles.container}
+                style={[styles.container, dynamicStyles.container]}
                 onLongPress={clearAllWeights}
             >
-                <Text style={styles.heading}>
-                    Weight
-                </Text>
-                <Text style={styles.currentWeight}>
-                    {currentWeight.toFixed(1)} kg
-                </Text>
-                {weightChange !== null && (
-                    <Text style={[styles.weightChange, { color: getChangeColor() }]}>
-                        {getChangeText()}
+                <View style={styles.cardHeader}>
+                    <Text style={[styles.heading, dynamicStyles.heading]}>
+                        Weight Tracker
                     </Text>
+                </View>
+                
+                <View style={styles.weightDisplay}>
+                    <Text style={[styles.currentWeight, dynamicStyles.currentWeight]}>
+                        {currentWeight.toFixed(1)}
+                    </Text>
+                    <Text style={[styles.unit, dynamicStyles.heading]}>kg</Text>
+                </View>
+                
+                {weightChange !== null && (
+                    <View style={styles.changeContainer}>
+                        <Text style={[styles.changeLabel, dynamicStyles.heading]}>
+                            Since last entry:
+                        </Text>
+                        <Text style={[styles.weightChange, dynamicStyles.weightChange]}>
+                            {getChangeText()}
+                        </Text>
+                    </View>
                 )}
+                
+                <Text style={[styles.tapHint, dynamicStyles.heading]}>
+                    Tap to add entry • Long press to clear history
+                </Text>
             </Pressable>
 
             <Modal
@@ -162,33 +253,36 @@ export default function WeightLog() {
                 animationType="slide"
                 onRequestClose={() => setModalVisible(false)}
             >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Weight Tracker</Text>
+                <View style={[styles.modalContainer, dynamicStyles.modalContainer]}>
+                    <View style={[styles.modalHeader, dynamicStyles.historyHeader]}>
+                        <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>
+                            Weight Tracker
+                        </Text>
                         <Pressable 
                             onPress={() => setModalVisible(false)}
-                            style={styles.closeButton}
+                            style={[styles.closeButton, dynamicStyles.closeButton]}
                         >
-                            <Text style={styles.closeButtonText}>Close</Text>
+                            <Text style={styles.closeButtonText}>✕</Text>
                         </Pressable>
                     </View>
 
                     <View style={styles.inputSection}>
-                        <Text style={styles.sectionTitle}>
-                            Log new weight (kg):
+                        <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>
+                            Log new weight (kg)
                         </Text>
                         <View style={styles.inputContainer}>
                             <TextInput
                                 value={inputValue}
                                 onChangeText={setInputValue}
                                 placeholder="Enter weight"
+                                placeholderTextColor={theme.text + '66'}
                                 keyboardType="numeric"
-                                style={styles.textInput}
+                                style={[styles.textInput, dynamicStyles.textInput]}
                                 autoFocus={true}
                             />
                             <Pressable
                                 onPress={handleSaveWeight}
-                                style={styles.saveButton}
+                                style={[styles.saveButton, dynamicStyles.saveButton]}
                             >
                                 <Text style={styles.saveButtonText}>Save</Text>
                             </Pressable>
@@ -196,9 +290,9 @@ export default function WeightLog() {
                     </View>
                     
                     <View style={styles.historySection}>
-                        <View style={styles.historyHeader}>
-                            <Text style={styles.sectionTitle}>
-                                Weight History
+                        <View style={[styles.historyHeader, dynamicStyles.historyHeader]}>
+                            <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>
+                                Weight History ({weightEntries.length} entries)
                             </Text>
                             <Pressable
                                 onPress={clearAllWeights}
@@ -207,20 +301,34 @@ export default function WeightLog() {
                                 <Text style={styles.clearButtonText}>Clear All</Text>
                             </Pressable>
                         </View>
-                        <ScrollView style={styles.scrollView}>
+                        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                             {weightEntries.length === 0 ? (
-                                <Text style={styles.emptyText}>No weight saved entries yet</Text>
+                                <View style={styles.emptyState}>
+                                    <Text style={[styles.emptyText, dynamicStyles.emptyText]}>
+                                        No weight entries yet
+                                    </Text>
+                                    <Text style={[styles.emptySubtext, dynamicStyles.emptyText]}>
+                                        Add your first entry to start tracking
+                                    </Text>
+                                </View>
                             ) : (
                                 [...weightEntries]
                                     .reverse()
-                                    .map((entry) => (
-                                        <View key={entry.id} style={styles.entryItem}>
-                                            <Text style={styles.entryWeight}>
-                                                {entry.weight.toFixed(1)} kg
-                                            </Text>
-                                            <Text style={styles.entryDate}>
-                                                {formatDate(entry.date)}
-                                            </Text>
+                                    .map((entry, index) => (
+                                        <View key={entry.id} style={[styles.entryItem, dynamicStyles.entryItem]}>
+                                            <View style={styles.entryLeft}>
+                                                <Text style={[styles.entryWeight, dynamicStyles.entryWeight]}>
+                                                    {entry.weight.toFixed(1)} kg
+                                                </Text>
+                                                <Text style={[styles.entryDate, dynamicStyles.entryDate]}>
+                                                    {formatDate(entry.date)}
+                                                </Text>
+                                            </View>
+                                            {index === 0 && (
+                                                <View style={styles.currentBadge}>
+                                                    <Text style={styles.currentBadgeText}>Current</Text>
+                                                </View>
+                                            )}
                                         </View>
                                     ))
                             )}
@@ -234,112 +342,178 @@ export default function WeightLog() {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: 'white',
-        margin: 20,
-        padding: 20,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: 'black',
-        alignItems: 'flex-start',
-        minHeight: 80,
-        justifyContent: 'center',
+        margin: 16,
+        padding: 24,
+        borderRadius: 20,
+        borderWidth: 1,
+        minHeight: 140,
+        justifyContent: 'space-between',
     },
     loadingContainer: {
         justifyContent: 'center',
         alignItems: 'center',
+        minHeight: 140,
+    },
+    loadingContent: {
+        alignItems: 'center',
+        gap: 12,
+    },
+    loadingSpinner: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: '#007AFF',
+        borderTopColor: 'transparent',
+    },
+    loadingText: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
     },
     heading: {
+        fontSize: 18,
+        fontWeight: '600',
+        letterSpacing: 0.5,
+    },
+    weightIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#007AFF20',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconText: {
         fontSize: 16,
     },
+    weightDisplay: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 8,
+        marginBottom: 8,
+    },
     currentWeight: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: 'black',
+        fontSize: 42,
+        fontWeight: '700',
+        letterSpacing: -1,
+    },
+    unit: {
+        fontSize: 24,
+        fontWeight: '500',
+        opacity: 0.7,
+    },
+    changeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 16,
+    },
+    changeLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        opacity: 0.7,
     },
     weightChange: {
         fontSize: 16,
-        marginTop: 4,
+        fontWeight: '600',
+    },
+    tapHint: {
+        fontSize: 12,
         fontWeight: '500',
+        opacity: 0.6,
+        textAlign: 'center',
     },
     modalContainer: {
         flex: 1,
-        backgroundColor: 'white',
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
+        padding: 24,
+        paddingTop: 60,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
     },
     modalTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: 'black',
+        fontSize: 28,
+        fontWeight: '700',
+        letterSpacing: -0.5,
     },
     closeButton: {
-        padding: 10,
-        backgroundColor: 'black',
-        borderRadius: 8,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     closeButtonText: {
         color: 'white',
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontWeight: '600',
     },
     inputSection: {
-        padding: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        padding: 24,
+        gap: 16,
     },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'black',
-        marginBottom: 10,
+        fontSize: 20,
+        fontWeight: '600',
+        marginBottom: 4,
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
     },
     textInput: {
         flex: 1,
-        borderWidth: 1,
-        borderColor: 'black',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        backgroundColor: 'white',
+        borderWidth: 2,
+        borderRadius: 16,
+        padding: 16,
+        fontSize: 18,
+        fontWeight: '500',
     },
     saveButton: {
-        backgroundColor: 'black',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 8,
+        paddingHorizontal: 24,
+        paddingVertical: 16,
+        borderRadius: 16,
+        minWidth: 80,
+        alignItems: 'center',
     },
     saveButtonText: {
         color: 'white',
-        fontWeight: 'bold',
+        fontWeight: '600',
+        fontSize: 16,
     },
     historySection: {
         flex: 1,
-        padding: 20,
+        padding: 24,
+        paddingTop: 0,
     },
     historyHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 10,
+        paddingBottom: 16,
+        marginBottom: 16,
+        borderBottomWidth: 1,
     },
     clearButton: {
-        padding: 8,
-        backgroundColor: '#ff4444',
-        borderRadius: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#FF6B6B',
+        borderRadius: 12,
     },
     clearButtonText: {
         color: 'white',
         fontSize: 14,
+        fontWeight: '600',
     },
     scrollView: {
         flex: 1,
@@ -348,24 +522,52 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        padding: 16,
+        marginBottom: 8,
+        borderRadius: 16,
+        borderWidth: 1,
+    },
+    entryLeft: {
+        flex: 1,
     },
     entryWeight: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: 'black',
+        fontSize: 20,
+        fontWeight: '600',
+        marginBottom: 4,
     },
     entryDate: {
         fontSize: 14,
-        color: '#666',
+        fontWeight: '500',
+    },
+    currentBadge: {
+        backgroundColor: '#51CF66',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    currentBadgeText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+        gap: 12,
+    },
+    emptyIcon: {
+        fontSize: 48,
+        marginBottom: 8,
     },
     emptyText: {
+        fontSize: 18,
+        fontWeight: '600',
         textAlign: 'center',
-        marginTop: 20,
-        color: '#666',
-        fontStyle: 'italic',
-        fontWeight: 'bold',
+    },
+    emptySubtext: {
+        fontSize: 14,
+        textAlign: 'center',
+        opacity: 0.7,
     },
 });

@@ -170,21 +170,21 @@ export const loadCurrentMeasurements = async (): Promise<CurrentMeasurement[]> =
 };
 
 // Clear all data (useful for debugging or user logout)
-export const clearAllData = async () => {
-  try {
-    await AsyncStorage.multiRemove([
-      STORAGE_KEYS.WORKOUT_TEMPLATES,
-      STORAGE_KEYS.WEIGHT_HISTORY,
-      STORAGE_KEYS.WORKOUT_SESSIONS,
-      STORAGE_KEYS.EXERCISES,
-      STORAGE_KEYS.MEASUREMENTS_HISTORY,
-      STORAGE_KEYS.CURRENT_MEASUREMENTS, 
-    ]);
-    console.log('All data cleared successfully');
-  } catch (error) {
-    console.error('Error clearing data:', error);
-  }
-};
+  export const clearAllData = async () => {
+    try {
+      await AsyncStorage.multiSet([
+        [STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify([])],
+        [STORAGE_KEYS.WEIGHT_HISTORY, JSON.stringify([])],
+        [STORAGE_KEYS.WORKOUT_SESSIONS, JSON.stringify([])],
+        [STORAGE_KEYS.EXERCISES, JSON.stringify(getDefaultExercises())],
+        [STORAGE_KEYS.MEASUREMENTS_HISTORY, JSON.stringify([])],
+        [STORAGE_KEYS.CURRENT_MEASUREMENTS, JSON.stringify([])],
+      ]);
+      console.log('Data reset to initial empty values');
+    } catch (error) {
+      console.error('Error resetting data:', error);
+    }
+  };
 
 // Get storage info (useful for debugging)
 export const getStorageInfo = async () => {
