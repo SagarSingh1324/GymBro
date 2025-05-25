@@ -17,7 +17,7 @@ export default function ActiveSession() {
   const [isRunning, setIsRunning] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const styles = createStyles(theme);
 
@@ -48,7 +48,6 @@ export default function ActiveSession() {
         setElapsedTime(Date.now() - startTime);
       }, 1000);
     }
-
     return () => {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
