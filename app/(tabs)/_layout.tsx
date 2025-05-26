@@ -9,7 +9,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      initialRouteName='(logsession)'
+      initialRouteName='LogScreens'
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -23,7 +23,7 @@ export default function TabLayout() {
         },
       }}>
       <Tabs.Screen
-        name="(logsession)"
+        name="LogScreens"
         options={{
           title: 'Log Session',
           tabBarIcon: ({ color }) => (

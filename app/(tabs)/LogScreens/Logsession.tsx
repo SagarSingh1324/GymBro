@@ -52,7 +52,7 @@ export default function Logsession() {
   // Navigate to active session with selected template
   const navigateToActiveSession = (template: WorkoutTemplate) => {
     router.push({
-      pathname: '/(tabs)/(logsession)/Activesession',
+      pathname: '/(tabs)/LogScreens/Activesession',
       params: { 
         templateId: template.id,
         templateName: template.name 
@@ -62,7 +62,7 @@ export default function Logsession() {
 
   // Navigate to create template screen
   const navigateToTemplateCreator = () => {
-    router.push('/(tabs)/(logsession)/Createtemplate');
+    router.push('/(tabs)/LogScreens/Createtemplate');
   };
 
   const styles = createStyles(theme);

@@ -2,11 +2,16 @@
   "expo": {
     "name": "GymBro",
     "slug": "GymBro",
-    "scheme": "GymBro",
+    "scheme": "gymbro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "splash": {
+    "image": "./assets/SplashScreenImage.png",
+    "resizeMode": "conatin",
+    "backgroundColor": "#111726"
+    },
     "updates": {
       "fallbackToCacheTimeout": 0
     },
@@ -21,6 +26,11 @@
       "package": "com.ghostrex.gymbro",
       "versionCode": 1
     },
+    "plugins": [
+      [
+        "expo-router"
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "de2ba041-5b29-4e2c-8d60-748aedd04d32"
